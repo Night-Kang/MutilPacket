@@ -3,6 +3,7 @@
     package="com.night.mutilpacket">
 
     <application
+        android:name=".MultiApplication"
         android:allowBackup="true"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
@@ -17,8 +18,13 @@
         </activity>
         <meta-data
             android:name="NIGHT_CHANNEL"
-            android:value="${NIGHT_CHANNEL_VALUE}"
-            />
+            android:value="${NIGHT_CHANNEL_VALUE}" />
+        <meta-data
+            android:name="NIGHT_CHANNEL_KEY"
+            android:value="${NIGHT_CHANNEL_KEY_VALUE}"/>
+        <meta-data
+            android:name="UMENG_CHANNEL_VALUE"
+            android:value="${UMENG_APPKEY_VALUE}"/>
     </application>
 
 </manifest>

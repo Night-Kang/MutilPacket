@@ -2,8 +2,12 @@ apply plugin: 'com.android.application'
 
 //获取即时时间
 def releaseTime() {
-    return new Date().format("yyyyMMddHHmm", TimeZone.getTimeZone("UTC"))
+    return new Date().format("yyyyMMddHHmmss", TimeZone.getTimeZone("Asia/Shanghai")) //UTC
 }
+
+//获取local.properties对应的配置
+Properties properties = new Properties()
+properties.load(project.rootProject.file('local.properties').newDataInputStream())
 
 android {
     compileSdkVersion 24
@@ -14,19 +18,19 @@ android {
         minSdkVersion 15
         targetSdkVersion 24
         versionCode 1
-        versionName "1.0"
+        versionName "1.1"
+        //默认配置??缺省
+        manifestPlaceholders = [NIGHT_CHANNEL_KEY_VALUE: "hello", UMENG_APPKEY_VALUE: "test"]
     }
 
     //sign file info
     signingConfigs {
         debug {
             // No debug config
-            println("---signingConfigs---debug--");
         }
 
         release {
-            println("---signingConfigs---release--");
-            storeFile file("../night.jks")
+            storeFile file("./night.jks")
             storePassword "kang123"
             keyAlias "night"
             keyPassword "kang123"
@@ -39,39 +43,69 @@ android {
             shrinkResources false
             zipAlignEnabled false
             signingConfig signingConfigs.debug
+            //表示是否给版本名称添加后缀，方便在测试时区分对应的是哪个环境版本的包。
+            versionNameSuffix "-debug"
+            buildConfigField "String", "APP_IP", "\"NightSchoolDebug\""
+            manifestPlaceholders.put("NIGHT_CHANNEL_KEY_VALUE", "DEBUGKEY")
+            println("---outputFile---");
         }
 
         release {
-            println("---buildTypes-----")
             buildConfigField "boolean", "LOG_DEBUG", "false" // 不显示Log，I'm not sure
             minifyEnabled true //代码混淆
             shrinkResources true //删除无效的resource，必须和minifyEnabled一起用
             zipAlignEnabled true //使得在运行时Android与应用程序间的交互更加有效率
-            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro' //代码混淆
+            //代码混淆配置
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            //签名文件
             signingConfig signingConfigs.release  //选取签名文件
+            //buildConfigField用来创建一个全局静态常量，在程序中可以用BuildConfig.APP_IP来使用该常量；
+            buildConfigField "String", "APP_IP", "\"NightSchoolRelease\""
+            //配置多版本对应的key，比方说开发key，测试key，生产key
+            manifestPlaceholders.put("NIGHT_CHANNEL_KEY_VALUE", "RELEASEKEY")
+            //将数据写入到local.properties中，开源代码的时候可以隐藏对应的是有key
+            manifestPlaceholders = [UMENG_APPKEY_VALUE:properties.getProperty("umengAppKey")]
 
             //采用动态替换渠道字符串的方式，生成各渠道的AndroidManifest.xml文件并打包。
-            applicationVariants.all { variant->
-                variant.outputs.each { output->
-                    def outputFile = output.outputFile
-                    println("---outputFile---" + variant.productFlavors[].size);
-                    if (outputFile != null && outputFile.name.endsWith('.apk')) {
-                        // 输出apk名称为night_v1.0_2015-01-15_wandoujia.apk
-                        def fileName = "night_v${defaultConfig.versionName}_${defaultConfig.versionCode}_${releaseTime()}_${variant.productFlavors[0].name}.apk"
-                        output.outputFile = new File(outputFile.parent, fileName)
-                    }
+            //好像不是局部的！！！！？？？？
+            applicationVariants.all { variant ->
+                //测试版本下不修改包名，以免出现 (The APK not exist no disk)
+                if (!"default".equals(variant.productFlavors[0].name)) {
+                    variant.outputs.each { output ->
+                        def outputFile = output.outputFile
+                        if (outputFile != null && outputFile.name.endsWith('.apk')) {
+                            // 输出apk名称为night_v1.0_2015-01-15_wandoujia.apk
+                            def fileName = "night_${defaultConfig.versionName}_${defaultConfig.versionCode}__${releaseTime()}_${variant.productFlavors[0].name}.apk"
+//                            println("---outputFile---" + fileName);
+                            output.outputFile = new File(outputFile.parent, fileName)
+                        }
 
+                    }
                 }
             }
 
         }
     }
 
+    //资源文件路径
+    sourceSets {
+
+        "360" {
+            //优先使用src/qihun/res下面的资源文件
+            res.srcDirs = ['src/qihun/res']
+        }
+    }
+
     //多渠道打包
     productFlavors {
+        "default" {
+        }
         "360" {
+            //配置针对性的app id !!! We can't use XXX.360 for APP ID
+            applicationId "com.night.mutilpacket.qihu"
         }
         index {
+            applicationId "com.night.mutilpacket.index"
         }
         xiaomi {
         }
@@ -81,7 +115,8 @@ android {
         }
     }
 
-    productFlavors.all { flavor ->flavor.manifestPlaceholders = [NIGHT_CHANNEL_VALUE: name]
+    productFlavors.all { flavor ->
+        flavor.manifestPlaceholders = [NIGHT_CHANNEL_VALUE: name]
         println("------" + flavor.manifestPlaceholders);
     }
 }

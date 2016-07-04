@@ -5,6 +5,7 @@
 .gradle
 //本地环境文件
 /local.properties
+*.apk
 
 //编译相关文件
 bin
