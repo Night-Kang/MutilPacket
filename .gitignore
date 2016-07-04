@@ -1,0 +1,16 @@
+.DS_Store
+
+//idea file
+.idea   
+.gradle
+//本地环境文件
+/local.properties
+
+//编译相关文件
+bin
+build
+out
+
+*iml
+
+

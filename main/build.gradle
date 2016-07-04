@@ -1,0 +1,93 @@
+apply plugin: 'com.android.application'
+
+//获取即时时间
+def releaseTime() {
+    return new Date().format("yyyyMMddHHmm", TimeZone.getTimeZone("UTC"))
+}
+
+android {
+    compileSdkVersion 24
+    buildToolsVersion "24.0.0"
+
+    defaultConfig {
+        applicationId "com.night.mutilpacket"
+        minSdkVersion 15
+        targetSdkVersion 24
+        versionCode 1
+        versionName "1.0"
+    }
+
+    //sign file info
+    signingConfigs {
+        debug {
+            // No debug config
+            println("---signingConfigs---debug--");
+        }
+
+        release {
+            println("---signingConfigs---release--");
+            storeFile file("../night.jks")
+            storePassword "kang123"
+            keyAlias "night"
+            keyPassword "kang123"
+        }
+    }
+
+    buildTypes {
+        debug {
+            minifyEnabled false
+            shrinkResources false
+            zipAlignEnabled false
+            signingConfig signingConfigs.debug
+        }
+
+        release {
+            println("---buildTypes-----")
+            buildConfigField "boolean", "LOG_DEBUG", "false" // 不显示Log，I'm not sure
+            minifyEnabled true //代码混淆
+            shrinkResources true //删除无效的resource，必须和minifyEnabled一起用
+            zipAlignEnabled true //使得在运行时Android与应用程序间的交互更加有效率
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro' //代码混淆
+            signingConfig signingConfigs.release  //选取签名文件
+
+            //采用动态替换渠道字符串的方式，生成各渠道的AndroidManifest.xml文件并打包。
+            applicationVariants.all { variant->
+                variant.outputs.each { output->
+                    def outputFile = output.outputFile
+                    println("---outputFile---" + variant.productFlavors[].size);
+                    if (outputFile != null && outputFile.name.endsWith('.apk')) {
+                        // 输出apk名称为night_v1.0_2015-01-15_wandoujia.apk
+                        def fileName = "night_v${defaultConfig.versionName}_${defaultConfig.versionCode}_${releaseTime()}_${variant.productFlavors[0].name}.apk"
+                        output.outputFile = new File(outputFile.parent, fileName)
+                    }
+
+                }
+            }
+
+        }
+    }
+
+    //多渠道打包
+    productFlavors {
+        "360" {
+        }
+        index {
+        }
+        xiaomi {
+        }
+        baidu {
+        }
+        huawei {
+        }
+    }
+
+    productFlavors.all { flavor ->flavor.manifestPlaceholders = [NIGHT_CHANNEL_VALUE: name]
+        println("------" + flavor.manifestPlaceholders);
+    }
+}
+
+dependencies {
+    compile fileTree(dir: 'libs', include: ['*.jar'])
+    testCompile 'junit:junit:4.12'
+    compile 'com.android.support:appcompat-v7:24.0.0'
+}
